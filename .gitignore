@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+*.log
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+memoir_novelist.db
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.DS_Store
