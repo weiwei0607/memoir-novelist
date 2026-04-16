@@ -1,15 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { fetchDiaries, fetchNovels, addDiary, generateNovel } from './api';
+import { fetchDiaries, fetchNovels, addDiary, generateNovel, deleteDiary, deleteNovel } from './api';
 import Reader from './components/Reader';
 import Alchemist from './components/Alchemist';
-import { 
-  History, 
-  PenTool, 
-  Wand2, 
-  BookOpen, 
-  Plus, 
-  Sparkles 
+import {
+  History,
+  PenTool,
+  Wand2,
+  BookOpen,
+  Plus,
+  Sparkles,
+  Trash2,
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react';
+
+function Toast({ message, type, onClose }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 3000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+
+  return (
+    <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center space-x-3 px-6 py-4 rounded-2xl shadow-xl text-white text-sm font-bold transition-all ${type === 'error' ? 'bg-red-600' : 'bg-stone-800'}`}>
+      {type === 'error' ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
+      <span>{message}</span>
+    </div>
+  );
+}
+
+const genreColor = {
+  '古裝仙俠': 'bg-red-800',
+  '星際科幻': 'bg-blue-800',
+  '賽博龐克': 'bg-purple-800',
+  '克蘇魯': 'bg-green-900',
+};
 
 function App() {
   const [diaries, setDiaries] = useState([]);
@@ -18,11 +42,14 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('bookcase');
   const [readingNovel, setReadingNovel] = useState(null);
-  
+  const [toast, setToast] = useState(null);
+
   const [genre, setGenre] = useState('現代都會');
   const [userRole, setUserRole] = useState('主角');
   const [protagonistName, setProtagonistName] = useState('');
   const [selectedDiaryIds, setSelectedDiaryIds] = useState([]);
+
+  const showToast = (message, type = 'success') => setToast({ message, type });
 
   useEffect(() => {
     loadData();
@@ -35,24 +62,50 @@ function App() {
       setDiaries(dRes.data.slice().reverse());
       setNovels(nRes.data.slice().reverse());
     } catch (err) {
-      console.error('資料載入失敗', err);
+      showToast('資料載入失敗，請重新整理', 'error');
     }
   };
 
   const handleAddDiary = async () => {
-    if (!newDiaryText) return;
+    if (!newDiaryText.trim()) return;
     try {
       await addDiary(newDiaryText);
       setNewDiaryText('');
       loadData();
-      alert('記憶已封存');
+      showToast('記憶已封存');
     } catch (err) {
-      console.error('新增失敗', err);
+      showToast('封存失敗，請稍後再試', 'error');
+    }
+  };
+
+  const handleDeleteDiary = async (e, id) => {
+    e.stopPropagation();
+    if (!window.confirm('確定刪除這則日記？')) return;
+    try {
+      await deleteDiary(id);
+      setDiaries(prev => prev.filter(d => d.id !== id));
+      setSelectedDiaryIds(prev => prev.filter(i => i !== id));
+      showToast('日記已刪除');
+    } catch (err) {
+      showToast('刪除失敗', 'error');
+    }
+  };
+
+  const handleDeleteNovel = async (e, id) => {
+    e.stopPropagation();
+    if (!window.confirm('確定刪除這篇故事？')) return;
+    try {
+      await deleteNovel(id);
+      setNovels(prev => prev.filter(n => n.id !== id));
+      if (readingNovel?.id === id) setReadingNovel(null);
+      showToast('故事已刪除');
+    } catch (err) {
+      showToast('刪除失敗', 'error');
     }
   };
 
   const handleGenerate = async () => {
-    if (selectedDiaryIds.length === 0) return alert('請先選取素材');
+    if (selectedDiaryIds.length === 0) return showToast('請先選取日記素材', 'error');
     setLoading(true);
     try {
       const res = await generateNovel({
@@ -61,11 +114,13 @@ function App() {
         user_role: userRole,
         protagonist_name: protagonistName || '無名氏'
       });
-      setNovels([res.data, ...novels]);
+      setNovels(prev => [res.data, ...prev]);
       setActiveTab('bookcase');
       setReadingNovel(res.data);
+      showToast('煉金成功，故事誕生了');
     } catch (err) {
-      alert('生成失敗，請檢查後端與 API Key');
+      const msg = err?.response?.data?.detail || '生成失敗，請稍後再試';
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -98,10 +153,20 @@ function App() {
 
         {activeTab === 'bookcase' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {novels.length === 0 && <div className="col-span-full py-24 text-center border-2 border-dashed border-stone-300 rounded-3xl text-stone-400">目前書架上空空如也，快去煉金室吧。</div>}
+            {novels.length === 0 && (
+              <div className="col-span-full py-24 text-center border-2 border-dashed border-stone-300 rounded-3xl text-stone-400">
+                目前書架上空空如也，快去煉金室吧。
+              </div>
+            )}
             {novels.map(novel => (
-              <article key={novel.id} onClick={() => setReadingNovel(novel)} className="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 group cursor-pointer">
-                <div className={`h-4 w-full ${novel.genre === '古裝仙俠' ? 'bg-red-800' : novel.genre === '星際科幻' ? 'bg-blue-800' : 'bg-stone-800'}`}></div>
+              <article key={novel.id} onClick={() => setReadingNovel(novel)} className="relative bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 group cursor-pointer">
+                <div className={`h-4 w-full ${genreColor[novel.genre] || 'bg-stone-800'}`}></div>
+                <button
+                  onClick={(e) => handleDeleteNovel(e, novel.id)}
+                  className="absolute top-6 right-6 p-2 rounded-full text-stone-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all z-10"
+                >
+                  <Trash2 size={16} />
+                </button>
                 <div className="p-8">
                   <div className="flex justify-between mb-4">
                     <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded">{novel.genre} · {novel.user_role}</span>
@@ -119,13 +184,31 @@ function App() {
         {activeTab === 'diaries' && (
           <div className="max-w-4xl mx-auto">
             <div className="bg-white p-8 rounded-3xl shadow-sm border border-stone-200 mb-8">
-              <h2 className="text-xl font-bold mb-4 flex items-center space-x-2"><Sparkles size={20} className="text-amber-500" /><span>撰寫今日碎片</span></h2>
-              <textarea className="w-full h-32 p-4 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-stone-700 leading-relaxed mb-4 resize-none" placeholder="在此寫下那些瞬間..." value={newDiaryText} onChange={(e) => setNewDiaryText(e.target.value)} />
-              <div className="flex justify-end"><button onClick={handleAddDiary} className="bg-stone-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-stone-800 transition-colors flex items-center space-x-2"><Plus size={20} /><span>封存記憶</span></button></div>
+              <h2 className="text-xl font-bold mb-4 flex items-center space-x-2">
+                <Sparkles size={20} className="text-amber-500" />
+                <span>撰寫今日碎片</span>
+              </h2>
+              <textarea
+                className="w-full h-32 p-4 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-stone-700 leading-relaxed mb-4 resize-none"
+                placeholder="在此寫下那些瞬間..."
+                value={newDiaryText}
+                onChange={(e) => setNewDiaryText(e.target.value)}
+              />
+              <div className="flex justify-end">
+                <button onClick={handleAddDiary} className="bg-stone-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-stone-800 transition-colors flex items-center space-x-2">
+                  <Plus size={20} /><span>封存記憶</span>
+                </button>
+              </div>
             </div>
             <div className="space-y-4">
               {diaries.map(diary => (
-                <div key={diary.id} className="bg-white p-6 rounded-2xl border border-stone-200">
+                <div key={diary.id} className="group relative bg-white p-6 rounded-2xl border border-stone-200">
+                  <button
+                    onClick={(e) => handleDeleteDiary(e, diary.id)}
+                    className="absolute top-4 right-4 p-2 rounded-full text-stone-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                   <span className="text-[10px] text-stone-400 mb-2 block text-left">{new Date(diary.created_at).toLocaleString()}</span>
                   <p className="text-stone-700 italic text-lg text-left">「{diary.content}」</p>
                 </div>
@@ -135,17 +218,24 @@ function App() {
         )}
 
         {activeTab === 'alchemist' && (
-          <Alchemist 
+          <Alchemist
             diaries={diaries} genre={genre} setGenre={setGenre}
             userRole={userRole} setUserRole={setUserRole}
             protagonistName={protagonistName} setProtagonistName={setProtagonistName}
-            selectedDiaryIds={selectedDiaryIds} toggleDiarySelection={(id) => setSelectedDiaryIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])}
+            selectedDiaryIds={selectedDiaryIds}
+            toggleDiarySelection={(id) => setSelectedDiaryIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])}
             generateNovel={handleGenerate} loading={loading}
           />
         )}
 
-        <Reader novel={readingNovel} onClose={() => setReadingNovel(null)} />
+        <Reader
+          novel={readingNovel}
+          onClose={() => setReadingNovel(null)}
+          onDelete={(id) => { handleDeleteNovel({ stopPropagation: () => {} }, id); }}
+        />
       </main>
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 }
