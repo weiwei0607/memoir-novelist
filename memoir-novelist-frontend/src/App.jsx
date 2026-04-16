@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { fetchDiaries, fetchNovels, addDiary, generateNovel, deleteDiary, deleteNovel } from './api';
 import Reader from './components/Reader';
 import Alchemist from './components/Alchemist';
+import Login from './components/Login';
+import { auth, logout } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import {
   History,
   PenTool,
@@ -11,7 +14,8 @@ import {
   Sparkles,
   Trash2,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  LogOut
 } from 'lucide-react';
 
 function Toast({ message, type, onClose }) {
@@ -36,6 +40,7 @@ const genreColor = {
 };
 
 function App() {
+  const [user, setUser] = useState(undefined); // undefined = loading, null = 未登入
   const [diaries, setDiaries] = useState([]);
   const [novels, setNovels] = useState([]);
   const [newDiaryText, setNewDiaryText] = useState('');
@@ -52,7 +57,11 @@ function App() {
   const showToast = (message, type = 'success') => setToast({ message, type });
 
   useEffect(() => {
-    loadData();
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      if (u) loadData();
+    });
+    return unsub;
   }, []);
 
   const loadData = async () => {
@@ -126,6 +135,14 @@ function App() {
     }
   };
 
+  if (user === undefined) return (
+    <div className="min-h-screen bg-stone-100 flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-amber-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
+  if (!user) return <Login />;
+
   return (
     <div className="min-h-screen bg-stone-100 flex font-serif selection:bg-amber-100 selection:text-amber-900">
       <nav className="w-20 bg-stone-900 text-stone-400 flex flex-col items-center py-8 space-y-8 fixed h-full z-20">
@@ -135,6 +152,10 @@ function App() {
         <button onClick={() => setActiveTab('bookcase')} className={`p-3 rounded-xl transition-all ${activeTab === 'bookcase' ? 'bg-stone-800 text-amber-500' : 'hover:text-stone-200'}`}><History size={24} /></button>
         <button onClick={() => setActiveTab('diaries')} className={`p-3 rounded-xl transition-all ${activeTab === 'diaries' ? 'bg-stone-800 text-amber-500' : 'hover:text-stone-200'}`}><PenTool size={24} /></button>
         <button onClick={() => setActiveTab('alchemist')} className={`p-3 rounded-xl transition-all ${activeTab === 'alchemist' ? 'bg-stone-800 text-amber-500' : 'hover:text-stone-200'}`}><Wand2 size={24} /></button>
+        <div className="flex-1" />
+        <button onClick={logout} className="p-3 rounded-xl hover:text-red-400 transition-all mb-2">
+          <LogOut size={20} />
+        </button>
       </nav>
 
       <main className="flex-1 ml-20 p-10 overflow-y-auto">

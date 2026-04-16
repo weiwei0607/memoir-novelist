@@ -1,10 +1,22 @@
 import axios from 'axios';
+import { auth } from './firebase';
 
 const API_BASE = 'https://memoir-novelist-backend-799111991622.asia-east1.run.app';
 
-export const fetchDiaries = () => axios.get(`${API_BASE}/diaries`);
-export const fetchNovels = () => axios.get(`${API_BASE}/novels`);
-export const addDiary = (content) => axios.post(`${API_BASE}/diaries`, { content });
-export const generateNovel = (data) => axios.post(`${API_BASE}/novels/generate`, data);
-export const deleteDiary = (id) => axios.delete(`${API_BASE}/diaries/${id}`);
-export const deleteNovel = (id) => axios.delete(`${API_BASE}/novels/${id}`);
+const api = axios.create({ baseURL: API_BASE });
+
+api.interceptors.request.use(async (config) => {
+  const user = auth.currentUser;
+  if (user) {
+    const token = await user.getIdToken();
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const fetchDiaries = () => api.get('/diaries');
+export const fetchNovels = () => api.get('/novels');
+export const addDiary = (content) => api.post('/diaries', { content });
+export const generateNovel = (data) => api.post('/novels/generate', data);
+export const deleteDiary = (id) => api.delete(`/diaries/${id}`);
+export const deleteNovel = (id) => api.delete(`/novels/${id}`);
