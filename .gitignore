@@ -14,3 +14,4 @@ memoir_novelist.db
 build/
 .DS_Store
 update_api_key.sh
+grant_firebase_permission.sh

@@ -14,25 +14,23 @@ class User(SQLModel, table=True):
 # --- Diary Model ---
 class Diary(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id")
+    user_id: int = Field(default=1)
+    firebase_uid: str = Field(index=True)
     content: str
-    mood_score: Optional[float] = None  # AI 自動評分 (0.0 to 1.0)
+    mood_score: Optional[float] = None
     tags: Optional[List[str]] = Field(default=[], sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 # --- Novel Model ---
 class Novel(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id")
+    user_id: int = Field(default=1)
+    firebase_uid: str = Field(index=True)
     title: str
     full_content: str
-    
-    # 你的自定義需求：風格、角色、主角名稱
-    genre: str = Field(default="現代都會")  # 古裝, 科幻, 校園, 現代...
-    user_role: str = Field(default="主角")  # 主角, 配角, 路人...
+    genre: str = Field(default="現代都會")
+    user_role: str = Field(default="主角")
     protagonist_name: Optional[str] = Field(default="無名氏")
-    
-    # 紀錄來源日記 ID
     diary_ids: List[int] = Field(default=[], sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
