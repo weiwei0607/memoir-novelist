@@ -71,3 +71,21 @@ async def generate_novel(request: NovelGenerateRequest, session: Session = Depen
 def list_novels(session: Session = Depends(get_session)):
     novels = session.exec(select(Novel)).all()
     return novels
+
+@app.delete("/diaries/{diary_id}")
+def delete_diary(diary_id: int, session: Session = Depends(get_session)):
+    diary = session.get(Diary, diary_id)
+    if not diary:
+        raise HTTPException(status_code=404, detail="日記不存在")
+    session.delete(diary)
+    session.commit()
+    return {"ok": True}
+
+@app.delete("/novels/{novel_id}")
+def delete_novel(novel_id: int, session: Session = Depends(get_session)):
+    novel = session.get(Novel, novel_id)
+    if not novel:
+        raise HTTPException(status_code=404, detail="小說不存在")
+    session.delete(novel)
+    session.commit()
+    return {"ok": True}
