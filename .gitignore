@@ -13,3 +13,4 @@ memoir_novelist.db
 .pub/
 build/
 .DS_Store
+update_api_key.sh
