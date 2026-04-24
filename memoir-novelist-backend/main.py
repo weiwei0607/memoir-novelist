@@ -1,27 +1,43 @@
-from fastapi import FastAPI, Depends, HTTPException, Header
+import os
+from fastapi import FastAPI, Depends, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from sqlmodel import Session, select
 from typing import List, Optional
 import firebase_admin
 from firebase_admin import credentials, auth as firebase_auth
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from database import engine, init_db, get_session
 from models import Diary, DiaryCreate, Novel, NovelGenerateRequest
 from ai_service import ai_service
 
-app = FastAPI(title="回憶小說家 (Memoir Novelist) API", version="1.0.0")
+# --- Rate Limiter ---
+limiter = Limiter(key_func=get_remote_address)
+
+app = FastAPI(title="回憶小說家 (Memoir Novelist) API", version="1.1.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # --- Firebase Admin 初始化（使用 Cloud Run 預設憑證）---
 if not firebase_admin._apps:
     firebase_admin.initialize_app()
 
 # --- CORS 設定 ---
+_allow_origins = os.getenv("CORS_ORIGINS", "https://memoir-novelist.web.app,http://localhost:5173")
+origins = [o.strip() for o in _allow_origins.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://memoir-novelist.web.app", "http://localhost:5173"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- Trusted Host (生產環境建議開啟) ---
+if os.getenv("ENV", "dev").lower() == "production":
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*.web.app", "*.run.app"])
 
 @app.on_event("startup")
 def on_startup():
@@ -44,20 +60,23 @@ def read_root():
 
 # --- Diary API ---
 @app.get("/diaries", response_model=List[Diary])
-def list_diaries(uid: str = Depends(get_current_user), session: Session = Depends(get_session)):
+@limiter.limit("60/minute")
+def list_diaries(request: Request, uid: str = Depends(get_current_user), session: Session = Depends(get_session)):
     diaries = session.exec(select(Diary).where(Diary.firebase_uid == uid)).all()
     return diaries
 
 @app.post("/diaries", response_model=Diary)
-def create_diary(diary_in: DiaryCreate, uid: str = Depends(get_current_user), session: Session = Depends(get_session)):
-    db_diary = Diary(user_id=1, firebase_uid=uid, content=diary_in.content)
+@limiter.limit("30/minute")
+def create_diary(request: Request, diary_in: DiaryCreate, uid: str = Depends(get_current_user), session: Session = Depends(get_session)):
+    db_diary = Diary(firebase_uid=uid, content=diary_in.content)
     session.add(db_diary)
     session.commit()
     session.refresh(db_diary)
     return db_diary
 
 @app.delete("/diaries/{diary_id}")
-def delete_diary(diary_id: int, uid: str = Depends(get_current_user), session: Session = Depends(get_session)):
+@limiter.limit("30/minute")
+def delete_diary(request: Request, diary_id: int, uid: str = Depends(get_current_user), session: Session = Depends(get_session)):
     diary = session.get(Diary, diary_id)
     if not diary or diary.firebase_uid != uid:
         raise HTTPException(status_code=404, detail="日記不存在")
@@ -67,22 +86,22 @@ def delete_diary(diary_id: int, uid: str = Depends(get_current_user), session: S
 
 # --- Novel API ---
 @app.post("/novels/generate", response_model=Novel)
-async def generate_novel(request: NovelGenerateRequest, uid: str = Depends(get_current_user), session: Session = Depends(get_session)):
-    diaries = session.exec(select(Diary).where(Diary.id.in_(request.diary_ids), Diary.firebase_uid == uid)).all()
+@limiter.limit("5/minute")
+async def generate_novel(request: Request, req: NovelGenerateRequest, uid: str = Depends(get_current_user), session: Session = Depends(get_session)):
+    diaries = session.exec(select(Diary).where(Diary.id.in_(req.diary_ids), Diary.firebase_uid == uid)).all()
     if not diaries:
         raise HTTPException(status_code=404, detail="找不到指定的日記素材")
 
-    novel_data = await ai_service.generate_novel_content(diaries, request)
+    novel_data = await ai_service.generate_novel_content(diaries, req)
 
     db_novel = Novel(
-        user_id=1,
         firebase_uid=uid,
         title=novel_data.get("title", "未命名故事"),
         full_content=novel_data.get("full_content", "生成失敗"),
-        genre=request.genre,
-        user_role=request.user_role,
-        protagonist_name=request.protagonist_name,
-        diary_ids=request.diary_ids
+        genre=req.genre,
+        user_role=req.user_role,
+        protagonist_name=req.protagonist_name,
+        diary_ids=req.diary_ids
     )
     session.add(db_novel)
     session.commit()
@@ -90,12 +109,14 @@ async def generate_novel(request: NovelGenerateRequest, uid: str = Depends(get_c
     return db_novel
 
 @app.get("/novels", response_model=List[Novel])
-def list_novels(uid: str = Depends(get_current_user), session: Session = Depends(get_session)):
+@limiter.limit("60/minute")
+def list_novels(request: Request, uid: str = Depends(get_current_user), session: Session = Depends(get_session)):
     novels = session.exec(select(Novel).where(Novel.firebase_uid == uid)).all()
     return novels
 
 @app.delete("/novels/{novel_id}")
-def delete_novel(novel_id: int, uid: str = Depends(get_current_user), session: Session = Depends(get_session)):
+@limiter.limit("30/minute")
+def delete_novel(request: Request, novel_id: int, uid: str = Depends(get_current_user), session: Session = Depends(get_session)):
     novel = session.get(Novel, novel_id)
     if not novel or novel.firebase_uid != uid:
         raise HTTPException(status_code=404, detail="小說不存在")

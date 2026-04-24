@@ -2,7 +2,7 @@ import os
 import json
 import google.generativeai as genai
 from typing import List
-from models import Diary, Novel, NovelGenerateRequest
+from models import Diary, NovelGenerateRequest
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,8 +15,8 @@ class AIService:
             self.model = None
         else:
             genai.configure(api_key=api_key)
-            # 使用最新且支援 JSON Mode 的 Gemini 1.5 Pro
-            self.model = genai.GenerativeModel('gemini-1.5-pro')
+            # 使用支援 JSON Mode 的 Gemini 模型
+            self.model = genai.GenerativeModel('gemini-2.0-flash')
 
     async def generate_novel_content(self, diaries: List[Diary], request: NovelGenerateRequest) -> dict:
         if not self.model:
@@ -59,14 +59,33 @@ class AIService:
         """
 
         try:
-            # 呼叫 Gemini 1.5 Pro 進行生成
-            response = self.model.generate_content(
+            # 呼叫 Gemini 進行生成，加入 timeout 避免請求掛死
+            response = await self.model.generate_content_async(
                 prompt,
-                generation_config={"response_mime_type": "application/json"}
+                generation_config={"response_mime_type": "application/json"},
+                request_options={"timeout": 60}
             )
             # 解析回傳的 JSON
             result = json.loads(response.text)
             return result
+        except genai.types.BlockedPromptException as e:
+            print(f"AI 內容被過濾: {str(e)}")
+            return {
+                "title": f"內容過濾 ({request.genre})",
+                "full_content": "生成內容觸發安全過濾機制，請嘗試調整日記素材或風格設定。"
+            }
+        except genai.types.StopCandidateException as e:
+            print(f"AI 生成中斷: {str(e)}")
+            return {
+                "title": f"生成中斷 ({request.genre})",
+                "full_content": "AI 生成過程中斷，請稍後再試。"
+            }
+        except json.JSONDecodeError as e:
+            print(f"AI 回傳 JSON 解析失敗: {str(e)}")
+            return {
+                "title": f"格式錯誤 ({request.genre})",
+                "full_content": "AI 回傳格式異常，請稍後再試。"
+            }
         except Exception as e:
             print(f"AI 生成失敗: {str(e)}")
             return {

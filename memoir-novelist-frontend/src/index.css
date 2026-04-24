@@ -1,31 +1,59 @@
 @import "tailwindcss";
 
 @theme {
-  --color-amber-50: #fffbeb;
+  /* Amber palette */
+  --color-amber-50:  #fffbeb;
   --color-amber-100: #fef3c7;
+  --color-amber-200: #fde68a;
+  --color-amber-300: #fcd34d;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
   --color-amber-600: #d97706;
   --color-amber-700: #b45309;
   --color-amber-800: #92400e;
   --color-amber-900: #78350f;
-  --color-stone-50: #fafaf9;
+
+  /* Stone palette */
+  --color-stone-50:  #fafaf9;
   --color-stone-100: #f5f5f4;
   --color-stone-200: #e7e5e4;
+  --color-stone-300: #d6d3d1;
+  --color-stone-400: #a8a29e;
+  --color-stone-500: #78716c;
+  --color-stone-600: #57534e;
+  --color-stone-700: #44403c;
   --color-stone-800: #292524;
   --color-stone-900: #1c1917;
+
+  /* Red palette (for confirm modal danger) */
+  --color-red-50:  #fef2f2;
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
+
+  /* Green */
+  --color-green-500: #22c55e;
+  --color-green-600: #16a34a;
+  --color-green-900: #14532d;
+
+  /* Blue / Purple */
+  --color-blue-800:   #1e40af;
+  --color-purple-800: #5b21b6;
+  --color-orange-700: #c2410c;
 }
 
 @layer base {
   body {
     @apply bg-stone-50 text-stone-900 antialiased;
-    font-family: 'Georgia', 'Noto Serif TC', serif;
+    font-family: 'Noto Serif TC', 'Georgia', 'Times New Roman', serif;
   }
 }
 
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
+/* ── Scrollbar Hide ─────────────────────────── */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* 煉金法陣的漸層動畫 */
+/* ── Alchemy Gradient Animation ─────────────── */
 .alchemy-gradient {
   background: linear-gradient(-45deg, #78350f, #44403c, #92400e, #1c1917);
   background-size: 400% 400%;
@@ -33,7 +61,13 @@
 }
 
 @keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0%   { background-position: 0% 50%;   }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%;   }
+}
+
+/* ── Smooth font rendering ───────────────────── */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
