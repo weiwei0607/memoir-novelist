@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { auth } from './firebase';
 
-const API_BASE = 'https://memoir-novelist-backend-799111991622.asia-east1.run.app';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
 
 const api = axios.create({ baseURL: API_BASE });
 

@@ -14,7 +14,6 @@ class User(SQLModel, table=True):
 # --- Diary Model ---
 class Diary(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(default=1)
     firebase_uid: str = Field(index=True)
     content: str
     mood_score: Optional[float] = None
@@ -24,7 +23,6 @@ class Diary(SQLModel, table=True):
 # --- Novel Model ---
 class Novel(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(default=1)
     firebase_uid: str = Field(index=True)
     title: str
     full_content: str
