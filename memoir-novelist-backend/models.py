@@ -30,6 +30,8 @@ class Novel(SQLModel, table=True):
     user_role: str = Field(default="主角")
     protagonist_name: Optional[str] = Field(default="無名氏")
     diary_ids: List[int] = Field(default=[], sa_column=Column(JSON))
+    chapter_number: Optional[int] = Field(default=None)
+    previous_summary: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 # --- API Request Models ---
@@ -42,3 +44,4 @@ class NovelGenerateRequest(SQLModel):
     user_role: str = "主角"
     protagonist_name: str = "無名氏"
     style: str = "流暢優美的文學風格"
+    continuity_mode: bool = False  # 是否開啟連續章節模式

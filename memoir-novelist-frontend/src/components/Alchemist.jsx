@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wand2, User as UserIcon, LayoutDashboard, CheckCircle } from 'lucide-react';
+import { Wand2, User as UserIcon, LayoutDashboard, CheckCircle, Link2 } from 'lucide-react';
 
 const GENRES   = ['現代都會', '古裝仙俠', '星際科幻', '青春校園', '賽博龐克', '克蘇魯'];
 const ROLES    = ['主角', '配角', '反派', '路人'];
@@ -9,6 +9,7 @@ export default function Alchemist({
   diaries, genre, setGenre, userRole, setUserRole,
   protagonistName, setProtagonistName, selectedDiaryIds,
   toggleDiarySelection, setSelectedDiaryIds, generateNovel, loading,
+  continuityMode, setContinuityMode,
 }) {
   const allSelected = diaries.length > 0 && selectedDiaryIds.length === diaries.length;
 
@@ -75,6 +76,28 @@ export default function Alchemist({
                 </motion.button>
               ))}
             </div>
+          </div>
+
+          {/* Continuity Mode */}
+          <div>
+            <label className="block text-[10px] font-bold text-stone-400 mb-3 uppercase tracking-[0.2em]">
+              章節連續性
+            </label>
+            <motion.button
+              onClick={() => setContinuityMode(!continuityMode)}
+              whileTap={{ scale: 0.95 }}
+              className={`w-full p-3 rounded-xl text-xs font-bold border-2 transition-all flex items-center justify-center gap-2 ${
+                continuityMode
+                  ? 'border-amber-600 bg-amber-50 text-amber-700 shadow-sm'
+                  : 'border-stone-100 bg-stone-50 text-stone-400 hover:border-stone-300'
+              }`}
+            >
+              <Link2 size={14} />
+              {continuityMode ? '開啟連續章節模式' : '獨立短篇模式'}
+            </motion.button>
+            <p className="text-[10px] text-stone-400 mt-2">
+              {continuityMode ? 'AI 會參考前幾章的內容，讓故事連貫發展' : '每次生成獨立短篇，不參考之前的故事'}
+            </p>
           </div>
 
           {/* Protagonist Name */}

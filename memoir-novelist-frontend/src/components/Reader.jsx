@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Check, Trash2, X, Minus, Plus } from 'lucide-react';
+import { Copy, Check, Trash2, X, Minus, Plus, FileText } from 'lucide-react';
 
 // 字體大小限制
 const FONT_SIZES = ['text-base', 'text-lg', 'text-xl', 'text-2xl'];
@@ -95,6 +95,16 @@ export default function Reader({ novel, onClose, onDelete }) {
                     </motion.span>
                   )}
                 </AnimatePresence>
+              </button>
+
+              {/* PDF Export */}
+              <button
+                onClick={() => {
+                  window.open(`/api/novels/${novel.id}/pdf`, '_blank');
+                }}
+                className="flex items-center space-x-1.5 px-3 py-2 rounded-full text-stone-500 hover:bg-stone-100 transition-colors text-xs font-bold"
+              >
+                <FileText size={14} /> PDF
               </button>
 
               {/* Delete */}

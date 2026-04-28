@@ -18,7 +18,7 @@ class AIService:
             # 使用支援 JSON Mode 的 Gemini 模型
             self.model = genai.GenerativeModel('gemini-2.0-flash')
 
-    async def generate_novel_content(self, diaries: List[Diary], request: NovelGenerateRequest) -> dict:
+    async def generate_novel_content(self, diaries: List[Diary], request: NovelGenerateRequest, previous_novels: List[dict] = None) -> dict:
         if not self.model:
             return {
                 "title": "系統測試故事", 
@@ -30,7 +30,15 @@ class AIService:
         # 1. 整合素材
         diary_context = "\n".join([f"[{d.created_at.date()}] {d.content}" for d in diaries])
 
-        # 2. 設計多重宇宙與角色扮演 Prompt
+        # 2. 連續性素材
+        continuity_context = ""
+        if previous_novels and len(previous_novels) > 0:
+            continuity_context = "\n\n# 前情提要 (Previous Chapters Summary)\n"
+            for i, prev in enumerate(previous_novels[-3:], 1):  # 最近 3 章
+                continuity_context += f"第 {prev.get('chapter_number', '?')} 章《{prev.get('title', '')}》：{prev.get('full_content', '')[:200]}...\n"
+            continuity_context += "\n請確保本章與前情提要的角色名字、場景設定、情節發展保持一致，形成連貫的長篇故事。"
+
+        # 3. 設計多重宇宙與角色扮演 Prompt
         prompt = f"""
         # Role: 專業小說創作者 (宇宙煉金師)
         你是一位擅長將平庸日常轉化為非凡史詩的小說家。你的任務是將提供的日記碎片轉化為一篇短篇小說。
@@ -46,6 +54,7 @@ class AIService:
         2. 角色視角: 如果使用者角色是「主角」，請以第一人稱或緊貼主角的第三人稱敘述。如果是「路人」，請以旁觀者的視角冷眼觀察日記中的事件。
         3. 起承轉合: 確保故事包含開端、發展、高潮與結局，字數約 600 字左右。
         4. 嚴格限制: 標題與內文絕對不可包含冒號 (:) 符號。
+        {continuity_context}
 
         # 來源日記素材
         {diary_context}
