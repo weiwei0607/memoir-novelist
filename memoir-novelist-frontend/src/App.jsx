@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { fetchDiaries, fetchNovels, addDiary, generateNovel, deleteDiary, deleteNovel } from './api';
+import { fetchDiaries, fetchNovels, addDiary, generateNovel, deleteDiary, deleteNovel, fetchStreak } from './api';
 import Reader from './components/Reader';
 import Alchemist from './components/Alchemist';
 import Login from './components/Login';
 import ConfirmModal from './components/ConfirmModal';
-import { auth, logout } from './firebase';
+import MemberCard from './components/MemberCard';
+import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import {
   History,
@@ -17,8 +18,8 @@ import {
   Trash2,
   AlertCircle,
   CheckCircle,
-  LogOut,
   Library,
+  Flame,
 } from 'lucide-react';
 
 // ─── Toast ───────────────────────────────────────────────────────────────────
@@ -196,12 +197,14 @@ function App() {
   const [genre, setGenre] = useState('現代都會');
   const [userRole, setUserRole] = useState('主角');
   const [protagonistName, setProtagonistName] = useState('');
+  const [continuityMode, setContinuityMode] = useState(false);
   const [selectedDiaryIds, setSelectedDiaryIds] = useState([]);
 
   // 確認 Modal 狀態
   const [confirmModal, setConfirmModal] = useState({
     open: false, title: '', message: '', onConfirm: null,
   });
+  const [streak, setStreak] = useState({ current_streak: 0, longest_streak: 0, total_entries: 0 });
 
   const showToast = useCallback((message, type = 'success') => {
     const id = ++toastIdRef.current;
@@ -228,12 +231,14 @@ function App() {
   // 平行載入資料 + 錯誤分離
   const loadData = useCallback(async () => {
     try {
-      const [dRes, nRes] = await Promise.all([
+      const [dRes, nRes, sRes] = await Promise.all([
         fetchDiaries().catch(() => ({ data: [] })),
         fetchNovels().catch(() => ({ data: [] })),
+        fetchStreak().catch(() => ({ data: { current_streak: 0, longest_streak: 0, total_entries: 0 } })),
       ]);
       setDiaries(dRes.data.slice().reverse());
       setNovels(nRes.data.slice().reverse());
+      setStreak(sRes.data);
     } catch {
       showToast('資料載入失敗，請重新整理', 'error');
     }
@@ -306,6 +311,7 @@ function App() {
         genre,
         user_role: userRole,
         protagonist_name: protagonistName || '無名氏',
+        continuity_mode: continuityMode,
       });
       setNovels(prev => [res.data, ...prev]);
       setActiveTab('bookcase');
@@ -378,13 +384,12 @@ function App() {
           onClick={() => setActiveTab('alchemist')}
         />
         <div className="flex-1" />
-        <button
-          onClick={logout}
-          className="p-3 rounded-xl text-stone-500 hover:text-red-400 hover:bg-stone-800/50 transition-all mb-2"
-          title="登出"
-        >
-          <LogOut size={20} />
-        </button>
+        <MemberCard
+          user={user}
+          streak={streak}
+          entryCount={diaries.length}
+          novelCount={novels.length}
+        />
       </nav>
 
       {/* ── Main Content ── */}
@@ -405,6 +410,18 @@ function App() {
             <p className="text-stone-500 text-lg italic text-left">
               {headerTitles[activeTab]?.sub}
             </p>
+            {/* Streak Display */}
+            {streak.current_streak > 0 && (
+              <div className="mt-4 inline-flex items-center gap-3 bg-orange-50 border border-orange-200 px-4 py-2 rounded-xl">
+                <Flame size={20} className="text-orange-500" />
+                <span className="text-sm font-bold text-orange-700">
+                  連續寫作 {streak.current_streak} 天
+                </span>
+                <span className="text-xs text-orange-400">
+                  最高紀錄: {streak.longest_streak} 天 · 總共 {streak.total_entries} 篇日記
+                </span>
+              </div>
+            )}
           </motion.header>
         </AnimatePresence>
 
@@ -487,7 +504,7 @@ function App() {
           {/* ── ALCHEMIST ── */}
           {activeTab === 'alchemist' && (
             <motion.div
-              key="alchemist"
+              key="alchemist-tab"
               variants={pageVariants}
               initial="initial" animate="animate" exit="exit"
             >
@@ -501,6 +518,7 @@ function App() {
                 setSelectedDiaryIds={setSelectedDiaryIds}
                 generateNovel={handleGenerate}
                 loading={loading}
+                continuityMode={continuityMode} setContinuityMode={setContinuityMode}
               />
             </motion.div>
           )}
