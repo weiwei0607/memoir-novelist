@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "space-clear-app"
+  },
+  "targets": {
+    "space-clear-app": {
+      "hosting": {
+        "memoir-novelist": [
+          "memoir-novelist"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
