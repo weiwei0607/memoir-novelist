@@ -22,7 +22,7 @@ import {
   Flame,
 } from 'lucide-react';
 
-// ─── Toast ───────────────────────────────────────────────────────────────────
+// ─── Toast ────────────────────────────────────────────────────────────────────────────────
 const Toast = memo(function Toast({ message, type, onClose }) {
   useEffect(() => {
     const t = setTimeout(onClose, 3000);
@@ -46,7 +46,7 @@ const Toast = memo(function Toast({ message, type, onClose }) {
   );
 });
 
-// ─── Nav Tooltip ──────────────────────────────────────────────────────────────
+// ─── Nav Tooltip ──────────────────────────────────────────────────────────────────────────────
 const NavButton = memo(function NavButton({ icon, label, active, onClick }) {
   const [hover, setHover] = useState(false);
   return (
@@ -79,17 +79,17 @@ const NavButton = memo(function NavButton({ icon, label, active, onClick }) {
   );
 });
 
-// ─── Genre Color Map ──────────────────────────────────────────────────────────
+// ─── Genre Color Map ──────────────────────────────────────────────────────────────────────────────
 const genreColor = {
   '古裝仙俠': 'bg-red-800',
   '星際科幻': 'bg-blue-800',
-  '賽博龐克': 'bg-purple-800',
+  '賽博龜克': 'bg-purple-800',
   '克蘇魯':   'bg-green-900',
   '現代都會': 'bg-stone-700',
   '青春校園': 'bg-orange-700',
 };
 
-// ─── Empty Bookcase ───────────────────────────────────────────────────────────
+// ─── Empty Bookcase ─────────────────────────────────────────────────────────────────────────────
 const EmptyBookcase = memo(function EmptyBookcase({ onGoAlchemist }) {
   return (
     <motion.div
@@ -106,20 +106,20 @@ const EmptyBookcase = memo(function EmptyBookcase({ onGoAlchemist }) {
       </motion.div>
       <div className="text-center">
         <p className="text-stone-400 font-bold text-lg mb-1">書架還是空的</p>
-        <p className="text-stone-400 text-sm">前往煉金室，將你的日記碎片化為故事吧</p>
+        <p className="text-stone-400 text-sm">前往練金室，將你的日記碎片化為故事吧</p>
       </div>
       <button
         onClick={onGoAlchemist}
         className="flex items-center gap-2 bg-gradient-to-r from-amber-700 to-stone-900 text-white px-6 py-3 rounded-xl text-sm font-bold hover:scale-[1.03] active:scale-[0.97] transition-transform shadow-lg shadow-amber-900/20"
       >
         <Wand2 size={16} />
-        前往煉金室
+        前往練金室
       </button>
     </motion.div>
   );
 });
 
-// ─── Diary Item (memoized) ────────────────────────────────────────────────────
+// ─── Diary Item (memoized) ────────────────────────────────────────────────────────────────────────────
 const DiaryItem = memo(function DiaryItem({ diary, onDelete }) {
   const dateStr = useMemo(() => new Date(diary.created_at).toLocaleString(), [diary.created_at]);
 
@@ -144,7 +144,7 @@ const DiaryItem = memo(function DiaryItem({ diary, onDelete }) {
   );
 });
 
-// ─── Novel Card (memoized) ────────────────────────────────────────────────────
+// ─── Novel Card (memoized) ─────────────────────────────────────────────────────────────────────────────
 const NovelCard = memo(function NovelCard({ novel, index, onClick, onDelete }) {
   const dateStr = useMemo(() => new Date(novel.created_at).toLocaleDateString(), [novel.created_at]);
 
@@ -182,7 +182,7 @@ const NovelCard = memo(function NovelCard({ novel, index, onClick, onDelete }) {
   );
 });
 
-// ─── Main App ─────────────────────────────────────────────────────────────────
+// ─── Main App ───────────────────────────────────────────────────────────────────────────────
 function App() {
   const [user, setUser] = useState(undefined);
   const [diaries, setDiaries] = useState([]);
@@ -200,7 +200,6 @@ function App() {
   const [continuityMode, setContinuityMode] = useState(false);
   const [selectedDiaryIds, setSelectedDiaryIds] = useState([]);
 
-  // 確認 Modal 狀態
   const [confirmModal, setConfirmModal] = useState({
     open: false, title: '', message: '', onConfirm: null,
   });
@@ -219,7 +218,6 @@ function App() {
     setConfirmModal(prev => ({ ...prev, open: false, onConfirm: null }));
   }, []);
 
-  // ESC 關閉閱讀器
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === 'Escape') setReadingNovel(null);
@@ -228,7 +226,6 @@ function App() {
     return () => window.removeEventListener('keydown', handleKey);
   }, []);
 
-  // 平行載入資料 + 錯誤分離
   const loadData = useCallback(async () => {
     try {
       const [dRes, nRes, sRes] = await Promise.all([
@@ -287,7 +284,7 @@ function App() {
     if (e?.stopPropagation) e.stopPropagation();
     showConfirm({
       title: '刪除故事',
-      message: '這篇由記憶煉成的故事將永久消失，確定要刪除嗎？',
+      message: '這篇由記憶練成的故事將永久消失，確定要刪除嗎？',
       onConfirm: async () => {
         closeConfirm();
         try {
@@ -316,14 +313,14 @@ function App() {
       setNovels(prev => [res.data, ...prev]);
       setActiveTab('bookcase');
       setReadingNovel(res.data);
-      showToast('煉金成功，故事誕生了');
+      showToast('練金成功，故事誤生了');
     } catch (err) {
       const msg = err?.response?.data?.detail || '生成失敗，請稍後再試';
       showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
-  }, [selectedDiaryIds, genre, userRole, protagonistName, showToast]);
+  }, [selectedDiaryIds, genre, userRole, protagonistName, continuityMode, showToast]);
 
   const toggleDiarySelection = useCallback((id) => {
     setSelectedDiaryIds(prev =>
@@ -331,7 +328,6 @@ function App() {
     );
   }, []);
 
-  // ── Loading splash ──
   if (user === undefined) return (
     <div className="min-h-screen bg-stone-100 flex items-center justify-center">
       <motion.div
@@ -344,7 +340,6 @@ function App() {
 
   if (!user) return <Login />;
 
-  // ── Tab page variants ──
   const pageVariants = {
     initial: { opacity: 0, y: 14 },
     animate: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
@@ -353,8 +348,8 @@ function App() {
 
   const headerTitles = {
     bookcase:  { title: '回憶書架',  sub: '珍藏著由你的歲月碎片編織而成的故事。' },
-    diaries:   { title: '靈感筆記',  sub: '記下那些轉瞬即逝的瞬間，它們是煉金的最佳素材。' },
-    alchemist: { title: '煉金法陣',  sub: '在此將破碎的記憶，重塑為璀璨的多重宇宙。' },
+    diaries:   { title: '靈感筆記',  sub: '記下那些轉瞬即逗的瞬間，它們是練金的最佳素材。' },
+    alchemist: { title: '練金法陣',  sub: '在此將破碎的記憶，重塑為瓀燦的多重宇宙。' },
   };
 
   return (
@@ -379,7 +374,7 @@ function App() {
         />
         <NavButton
           icon={<Wand2 size={22} />}
-          label="煉金法陣"
+          label="練金法陣"
           active={activeTab === 'alchemist'}
           onClick={() => setActiveTab('alchemist')}
         />
@@ -410,7 +405,6 @@ function App() {
             <p className="text-stone-500 text-lg italic text-left">
               {headerTitles[activeTab]?.sub}
             </p>
-            {/* Streak Display */}
             {streak.current_streak > 0 && (
               <div className="mt-4 inline-flex items-center gap-3 bg-orange-50 border border-orange-200 px-4 py-2 rounded-xl">
                 <Flame size={20} className="text-orange-500" />
@@ -425,10 +419,8 @@ function App() {
           </motion.header>
         </AnimatePresence>
 
-        {/* Tab Pages */}
         <AnimatePresence mode="wait">
 
-          {/* ── BOOKCASE ── */}
           {activeTab === 'bookcase' && (
             <motion.div
               key="bookcase"
@@ -450,7 +442,6 @@ function App() {
             </motion.div>
           )}
 
-          {/* ── DIARIES ── */}
           {activeTab === 'diaries' && (
             <motion.div
               key="diaries"
@@ -458,7 +449,6 @@ function App() {
               initial="initial" animate="animate" exit="exit"
               className="max-w-4xl mx-auto"
             >
-              {/* Write Area */}
               <div className="bg-white p-8 rounded-3xl shadow-sm border border-stone-200 mb-8">
                 <h2 className="text-xl font-bold mb-4 flex items-center space-x-2">
                   <Sparkles size={20} className="text-amber-500" />
@@ -467,6 +457,7 @@ function App() {
                 <textarea
                   className="w-full h-32 p-4 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-stone-700 leading-relaxed mb-2 resize-none"
                   placeholder="在此寫下那些瞬間...（Ctrl+Enter 快速封存）"
+                  maxLength={600}
                   value={newDiaryText}
                   onChange={(e) => setNewDiaryText(e.target.value)}
                   onKeyDown={(e) => {
@@ -475,7 +466,7 @@ function App() {
                 />
                 <div className="flex items-center justify-between">
                   <span className={`text-xs ${newDiaryText.length > 500 ? 'text-amber-600 font-bold' : 'text-stone-400'}`}>
-                    {newDiaryText.length} 字
+                    {newDiaryText.length} / 600 字
                   </span>
                   <button
                     onClick={handleAddDiary}
@@ -486,7 +477,6 @@ function App() {
                 </div>
               </div>
 
-              {/* Diary List */}
               <motion.div className="space-y-4">
                 <AnimatePresence>
                   {diaries.map((diary) => (
@@ -501,7 +491,6 @@ function App() {
             </motion.div>
           )}
 
-          {/* ── ALCHEMIST ── */}
           {activeTab === 'alchemist' && (
             <motion.div
               key="alchemist-tab"
@@ -526,14 +515,12 @@ function App() {
         </AnimatePresence>
       </main>
 
-      {/* ── Reader Modal ── */}
       <Reader
         novel={readingNovel}
         onClose={() => setReadingNovel(null)}
         onDelete={(id) => handleDeleteNovel(null, id)}
       />
 
-      {/* ── Confirm Modal ── */}
       <ConfirmModal
         open={confirmModal.open}
         title={confirmModal.title}
@@ -542,7 +529,6 @@ function App() {
         onCancel={closeConfirm}
       />
 
-      {/* ── Toast ── */}
       <AnimatePresence>
         {toast && (
           <Toast
