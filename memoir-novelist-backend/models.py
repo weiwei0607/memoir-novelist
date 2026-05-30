@@ -36,12 +36,12 @@ class Novel(SQLModel, table=True):
 
 # --- API Request Models ---
 class DiaryCreate(SQLModel):
-    content: str
+    content: str = Field(min_length=1, max_length=5000)
 
 class NovelGenerateRequest(SQLModel):
-    diary_ids: List[int]
-    genre: str = "現代都會"
-    user_role: str = "主角"
-    protagonist_name: str = "無名氏"
-    style: str = "流暢優美的文學風格"
-    continuity_mode: bool = False  # 是否開啟連續章節模式
+    diary_ids: List[int] = Field(min_length=1, max_length=20)
+    genre: str = Field(default="現代都會", max_length=50)
+    user_role: str = Field(default="主角", max_length=50)
+    protagonist_name: str = Field(default="無名氏", max_length=50)
+    style: str = Field(default="流暢優美的文學風格", max_length=100)
+    continuity_mode: bool = False

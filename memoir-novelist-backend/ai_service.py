@@ -99,7 +99,7 @@ class AIService:
             print(f"AI 生成失敗: {str(e)}")
             return {
                 "title": f"時空亂流中的殘片 ({request.genre})",
-                "full_content": f"生成時遇到一點混亂。錯誤訊息: {str(e)}"
+                "full_content": "生成時遇到未知問題，請稍後再試。"
             }
 
 # 初始化服務實例

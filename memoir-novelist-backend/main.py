@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -17,7 +18,12 @@ from ai_service import ai_service
 # --- Rate Limiter ---
 limiter = Limiter(key_func=get_remote_address)
 
-app = FastAPI(title="回憶小說家 (Memoir Novelist) API", version="1.1.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+app = FastAPI(title="回憶小說家 (Memoir Novelist) API", version="1.1.0", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -39,10 +45,6 @@ app.add_middleware(
 # --- Trusted Host (生產環境建議開啟) ---
 if os.getenv("ENV", "dev").lower() == "production":
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*.web.app", "*.run.app"])
-
-@app.on_event("startup")
-def on_startup():
-    init_db()
 
 # --- Auth 依賴 ---
 def get_current_user(authorization: Optional[str] = Header(None)) -> str:
