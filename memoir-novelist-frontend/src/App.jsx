@@ -323,7 +323,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [selectedDiaryIds, genre, userRole, protagonistName, showToast]);
+  }, [selectedDiaryIds, genre, userRole, protagonistName, continuityMode, showToast]);
 
   const toggleDiarySelection = useCallback((id) => {
     setSelectedDiaryIds(prev =>
